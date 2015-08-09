@@ -1,0 +1,70 @@
+__author__ = 'SYSTEM CORE TEAM'
+import optparse
+import socket
+from socket import *
+from threading import *
+analyseur = optparse.OptionParser('usage %prog -H' +\
+                                  '<target host> -p <target port>')
+analyseur.add_option('-H', dest='tgtHost', type='string', \
+                     help='spécifez le hôte cible')
+analyseur.add_option('-H', dest='tgtPort', type='int', \
+                     help='spécifez le port cible')
+(options, args) = analyseur.parse_args()
+tgtHost = options.tgtHost
+tgtPort = options.tgtPort
+if (tgtHost == None) | (tgtPort == None):
+    print analyseur.usage
+    exit(0)
+screenLock = Semaphore(value=1)
+def connScan(tgtHost, tgtPort):
+    try:
+        connSkt = socket(AF_INET, SOCK_STREAM)
+        connSkt.connect((tgtHost, tgtPort))
+        connSkt.send('SYSTEM_CORE_CYBERSECURITY\r\n')
+        results = connSkt.recv(100)
+        screenLock.acquire()
+        print '[+]%d/tcp ouvert'% tgtPort
+        print'[+]' + str(results)
+
+    except:
+        screenLock.acquire()
+        print '[+]%d/tcp fermé'% tgtPort
+    finally:
+        screenLock.release()
+        connSkt.close()
+def portScan(tgtHost, tgtPorts):
+    try:
+       tgtIP = gethostbyname(tgtHost)
+    except:
+        print '[+]Résolution impossible'%s ' : Hôte inconnu'%tgtHost
+        return
+    try:
+       tgtName = gethostbyaddr(tgtIP)
+       print '\n[+] Résultats du Scanne pour:'+ tgtName[0]
+
+    except:
+       print '\n[+] Résultats du Scanne pour:'+ tgtIP
+    setdefaulttimeout(1)
+    for tgtPort in tgtPorts:
+       # print 'Scanne le port'+ tgtPort
+        # connScan(tgtHost,int(tgtPort))
+        t = Thread(target=connScan, args=(tgtHost, int(tgtPort)))
+        t.start()
+
+def main():
+    analyseur = optparse.OptionParser("usage%prog" + \
+                                      "-H <target host> -p <target port>")
+    analyseur.add_option('-H', dest='tgtHost', type='string', \
+                         help='Spécifiez Hôte cible')
+    analyseur.add_option('-p', dest='tgtPort', type='string', \
+                         help='Spécifiez Port cible [s] séparé[s] par ue virgule')
+    (options, args) = analyseur.parse_args()
+    tgtHost = options.tgtHost
+    tgtPorts = str(options.tgtPort).split(', ')
+    if (tgtHost == None) | (tgtPort == None):
+        print '[-] Vous devez spécifier h$ote et port[s] de la cible.'
+        exit(0)
+    portScan(tgtHost, tgtPorts)
+if __name__ == "__main__":
+    main()
+
